@@ -73,3 +73,26 @@ grep 'millionth' data.txt prints only the lines containing that word, so you don
 Useful grep flags to remember: -i (ignore case), -n (line numbers), -r (search recursively through directories)
 
 Password (bandit8): VR1ljMayciFxbnUokuQmJFw6QC9VKtub
+
+Level 8 → 9
+
+Goal: data.txt has many lines of text, and the password is the one line that appears only once.
+
+Command:
+
+sort data.txt | uniq -u
+
+How it works:
+
+sort data.txt puts the lines in alphabetical order, so identical lines end up next to each other.
+| (the pipe) takes the output of the command on its left and feeds it in as the input of the command on its right. This lets you chain small tools together.
+uniq -u prints only lines that are unique (-u), meaning they have no duplicates.
+
+Why sort has to come first: uniq doesn’t sort anything. It only compares each line with the line directly before it, so it only spots duplicates that sit side by side. Without sort, duplicates scattered through the file would be missed and wrongly treated as unique.
+
+Related flags worth remembering:
+
+uniq -d shows only lines that are duplicated
+uniq -c shows each line with a count of how many times it appeared
+
+Password (bandit9): EjmOSvuAu7sGAHqHVcBDPirRe9T03kxl
