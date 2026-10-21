@@ -96,3 +96,24 @@ uniq -d shows only lines that are duplicated
 uniq -c shows each line with a count of how many times it appeared
 
 Password (bandit9): EjmOSvuAu7sGAHqHVcBDPirRe9T03kxl
+
+Level 9 → 10
+
+Goal: data.txt is a mostly binary file. The password is one of the few human-readable strings in it, and it’s preceded by several = characters.
+
+Command:
+
+strings data.txt
+
+To cut down the output (a binary file still produces a lot of short junk strings), pipe it into grep:
+
+strings data.txt | grep '=='
+
+How it works:
+
+strings scans a file and prints only the runs of printable characters, skipping the binary data. By default it only shows sequences of 4 or more characters.
+The grep '==' step uses the pipe from the last level: strings outputs the readable text, and grep keeps only the lines containing ==, which is where the password sits.
+Running cat on a binary file can garble your terminal, so strings is the safer way to inspect one.
+
+
+Password (bandit10): B0s2khmbT9u0geKuOoVGW3JZKhndE3BG
