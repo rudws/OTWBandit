@@ -115,5 +115,23 @@ strings scans a file and prints only the runs of printable characters, skipping 
 The grep '==' step uses the pipe from the last level: strings outputs the readable text, and grep keeps only the lines containing ==, which is where the password sits.
 Running cat on a binary file can garble your terminal, so strings is the safer way to inspect one.
 
-
 Password (bandit10): B0s2khmbT9u0geKuOoVGW3JZKhndE3BG
+
+Level 10 → 11
+
+Goal: data.txt contains the password, but it’s been encoded in base64, so it looks like gibberish.
+
+Command:
+
+base64 -d data.txt
+
+How it works:
+
+Base64 is an encoding, not encryption. It converts data into plain letters, numbers, + and / so it can travel safely through text-only systems like email. Anyone can reverse it, no key needed.
+-d stands for decode, and it turns the base64 text back into the original message.
+Without -d, the command would encode the file instead.
+
+How to recognise base64: It’s a long run of letters and numbers, often ending in one or two = padding characters. It also only uses A–Z, a–z, 0–9, + and /.
+
+Password (bandit11): pYfOY6HwUsDj5rL9UvyhU7MCmv8vN5Ro
+
