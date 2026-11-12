@@ -152,3 +152,185 @@ ROT13 is its own inverse: shifting by 13 twice returns the original letter, so t
 Only letters are changed. Numbers and symbols pass through untouched.
 
 Password (bandit12): GROozWPO8QyN0mGrjUkID0WCYkZiQxrN
+
+Level 12 → 13
+
+Goal: data.txt is a hexdump of a file that has been compressed many times over (gzip, bzip2 and tar layers mixed together). Reverse the hexdump, then unpack one layer at a time until file reports ASCII text. That text is the password.
+
+Setup: a place to work
+mktemp -d
+cp ~/data.txt /tmp/tmp.AbC123
+cd /tmp/tmp.AbC123
+mktemp -d creates a temporary directory with a random name under /tmp and prints the path. The -d here means directory. Without it, mktemp would make an empty temporary file. You need this because your home directory is read-only, so you need somewhere you can create files.
+cp source destination copies a file. Here it copies data.txt into the temp directory, so the original stays untouched.
+cd moves you into that directory (covered earlier).
+Step 1: Reverse the hexdump
+xxd -r data.txt > data
+xxd converts between binary files and hexdumps (text showing the bytes in hexadecimal).
+-r means reverse: turn the hexdump back into the original binary data.
+> redirects the output into a new file called data, because binary output is unreadable on screen.
+Step 2: Identify the layer
+file data
+
+file (covered earlier) reads the contents of a file and reports its real type. Do this after every step, because the extension in the filename can’t be trusted. It will report one of three types in this level.
+
+Step 3: Unpack the layer
+
+Renaming with mv
+
+mv data data.gz
+mv old new moves or renames a file. Here it’s used purely to give the file the extension the decompression tool expects.
+
+gzip layer
+
+mv data data.gz
+gzip -d data.gz
+
+bzip2 layer
+
+mv data data.bz2
+bzip2 -d data.bz2
+gzip and bzip2 are two different compression programs.
+-d means decompress (decode). Without it, the commands would compress the file instead.
+Both tools require the right extension (.gz for gzip, .bz2 for bzip2) and will refuse files that don’t match the type.
+The output is the original name without the extension, so data.gz becomes data.
+
+tar layer
+
+tar xf data
+tar works with archives, which bundle one or more files together (an archive isn’t necessarily compressed).
+x means extract the contents.
+f means the next argument is the file to read from.
+tar doesn’t need a specific extension. It extracts a new file with a different name, which you find with ls. Run file on that new file, not the archive.
+Step 4: Repeat until done
+
+Loop:
+
+ls to find the newest file
+file <newest file>
+Use the matching command from step 3
+Repeat
+
+When file says ASCII text:
+
+cat <filename>
+
+That prints the password for bandit13.
+
+Summary table
+file reports	Rename to	Command	Result
+gzip compressed data	name.gz	gzip -d name.gz	name
+bzip2 compressed data	name.bz2	bzip2 -d name.bz2	name
+POSIX tar archive	no rename needed	tar xf name	new file (check ls)
+ASCII text		cat name	the password
+What I got wrong along the way
+I renamed a gzip file to .bz2, and bzip2 rejected it. The extension has to match what file reports at that moment.
+I ran file on an old archive instead of the new file that tar had just extracted, so I kept seeing the same answer.
+
+Password (bandit13): is qQYQiHOBPR8zR61qxYqX45quvihF2uzk
+
+Level 13 → 14
+
+Goal: The password for bandit14 is in a file only bandit14 can read. The home directory contains a private SSH key, which lets you log in as bandit14 without a password.
+
+Note: Connecting to localhost from inside the Bandit server is now blocked, so the key has to be copied to your own machine and used from there.
+
+Step 1: Copy the key to your machine
+
+Run this from your own Kali terminal, not while logged into Bandit:
+
+scp -P 2220 bandit13@bandit.labs.overthewire.org:/home/bandit13/sshkey.private .
+scp (secure copy) copies files between machines over SSH. It works like cp, but one side can be a remote machine.
+-P 2220 sets the port. In scp it’s a capital P, while ssh uses a lowercase -p.
+bandit13@bandit.labs.overthewire.org:/home/bandit13/sshkey.private follows the format user@host:path, which is the file to copy from.
+. is the destination, meaning the current folder. Anything with a host: prefix is treated as a remote location, so a plain local path must have no colon.
+Step 2: Lock down the key’s permissions
+chmod 400 sshkey.private
+
+SSH refuses to use a private key that other users on the machine could read, and shows WARNING: UNPROTECTED PRIVATE KEY FILE! and ignores it. Without that key it falls back to a password prompt.
+
+What chmod does in general
+
+chmod (change mode) controls who is allowed to read, write or run a file. You can see a file’s permissions with ls -l:
+
+-rw-r----- 1 kali kali 1679 sshkey.private
+
+After the first character (the file type), the remaining nine characters are three groups of three:
+
+Group	Who it applies to
+1st three	Owner, the user who owns the file
+2nd three	Group, other users in the file’s group
+3rd three	Others, everyone else
+
+Each group can have three permissions, and each has a number:
+
+Letter	Permission	Number
+r	Read	4
+w	Write	2
+x	Execute (run it)	1
+
+You add up the numbers for each group to get one digit, and chmod takes three digits (owner, group, others):
+
+400 means owner = 4 (read only), group = 0 (nothing), others = 0 (nothing)
+644 means owner = 6 (read + write), group = 4 (read), others = 4 (read)
+755 means owner = 7 (read + write + execute), group = 5 (read + execute), others = 5 (read + execute)
+
+Your key started out as 0640 (rw-r-----), so the owner could read and write it and the group could read it. SSH rejected it because the group could read it. chmod 400 makes it readable by you only.
+
+Step 3: Log in as bandit14 with the key
+ssh -i sshkey.private -p 2220 bandit14@bandit.labs.overthewire.org
+-i (identity file) tells SSH to authenticate with the private key file you name instead of a password.
+-p 2220 is the port, in lowercase for ssh.
+bandit14@... is the user you’re logging in as.
+Step 4: Read the password
+
+Once logged in as bandit14, the password is stored in a file named after the user:
+
+cat /etc/bandit_pass/bandit14
+
+Password (bandit14): aaWecNkG4FhxJQxz07uiwzVP6bJiYS65
+
+Mistakes I made along the way
+I used kali:/Desktop as the scp destination. The colon made it a remote path, so it tried to connect to a machine called kali and was refused.
+I used bandit as the host instead of the full address.
+I skipped chmod, so SSH ignored the key and asked for a password.
+
+Level 14 → 15
+
+Goal: The password for the next level is obtained by submitting the current level’s password (bandit14’s) to a service listening on port 30000 on localhost. The service checks it and replies with the next password.
+
+Note: This level doesn’t involve reading a file. You communicate with a running program over the network.
+
+Step 1: Log in as bandit14
+ssh -i sshkey.private -p 2220 bandit14@bandit.labs.overthewire.org
+
+This has to be done from the Bandit server itself, because the service on port 30000 only exists there. Running nc on your own Kali machine fails with “Connection refused”, since nothing is listening on port 30000 locally.
+
+Step 2: Connect to the service
+nc localhost 30000
+nc (netcat) opens a raw network connection to a host and port, and lets you send and receive text over it.
+localhost is the hostname that always means “this machine”. Since you’re logged into the Bandit server, localhost is the Bandit server.
+30000 is the port number the service is listening on. A port is like a numbered door on a machine, with different programs listening behind different doors.
+
+The cursor then waits with no prompt, because the service is waiting for you to send something.
+
+Step 3: Send the password
+
+Type the bandit14 password and press Enter:
+
+aaWecNkG4FhxJQxz07uiwzVP6bJiYS65
+
+The service reads one line, so the Enter key matters. It replies with the next password.
+
+You can also send it in one command using a pipe:
+
+echo "aaWecNkG4FhxJQxz07uiwzVP6bJiYS65" | nc localhost 30000
+echo prints the text it’s given.
+| (pipe) feeds that output into the command on the right, so nc sends it as if you’d typed it.
+Mistakes I made along the way
+Running nc on my Kali machine instead of the Bandit server. I used kali as the host, so it connected to my own computer and was refused. The service only exists on the Bandit server, so I had to log in there first and use localhost.
+Using -p as the destination port. -p sets the local source port the connection comes from, not the port I’m connecting to. This is why I got “no destination” and “invalid local port kali”. The destination port is just the last argument: nc <host> <port>.
+Using -r. This randomises ports, which isn’t what I needed.
+Using -c. This runs a shell command after connecting, so it isn’t a way to send text to the service. Sending the password is done by typing it in, or by piping it in with echo.
+
+Password (bandit15): pbLYuZtTg4MgaqfJx8jbA9gKKGqM68A7
