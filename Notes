@@ -334,3 +334,75 @@ Using -r. This randomises ports, which isn’t what I needed.
 Using -c. This runs a shell command after connecting, so it isn’t a way to send text to the service. Sending the password is done by typing it in, or by piping it in with echo.
 
 Password (bandit15): pbLYuZtTg4MgaqfJx8jbA9gKKGqM68A7
+
+Level 15 → 16
+
+Goal: Send bandit15’s password to a service on localhost:30001 that only accepts encrypted (SSL/TLS) connections. If the password is correct, it replies with the password for bandit16.
+
+The command
+echo pbLYuZtTg4MgaqfJx8jbA9gKKGqM68A7 | openssl s_client -connect localhost:30001 -quiet
+echo ... | prints the password and pipes it into the next command, so it gets sent as soon as the connection opens.
+openssl s_client is a client for SSL/TLS. It performs the encrypted handshake that this service requires, which nc cannot do.
+-connect localhost:30001 sets the destination as host and port in one argument, joined by a colon.
+-quiet hides the certificate and session details, so only the server’s reply shows.
+What the output means
+
+The reply comes at the end, after the line Correct!, followed by the next password.
+
+Lessons learnt
+Some services need encryption before they’ll talk to you. nc sends plain text, so it’s the wrong tool for an SSL/TLS service. openssl s_client does the handshake first, then passes your input through.
+Read the level goal carefully. It tells you the port and whether the service is encrypted. Port 30001 was the clue that this was a different kind of service from the one on 30000.
+Pipes let you script input. echo plus | sends the password without you typing it into a live session.
+Know what each flag does. -p in nc is the local port, not the destination. -quiet in openssl changes what you see, hiding the certificate and session details.
+Use the same pattern on every level. Identify the service, the port, the protocol, then send the password and read the reply.
+
+Password (bandit16): kS0Hf0u5HiXFwKMKFqXvPdOTNGGa0X8V
+
+Level 16 → 17
+
+Goal: Find which service on localhost in the range 31000–32000 accepts SSL/TLS connections and replies with a private SSH key when given the bandit16 password. That key logs you in as bandit17.
+
+Step 1: Log in as bandit16
+ssh -p 2220 bandit16@bandit.labs.overthewire.org
+
+Confirm you’re on the right account with whoami.
+
+Step 2: Scan for open ports
+nmap -p 31000-32000 localhost
+nmap scans a host to see which ports are open, meaning a program is listening on them.
+-p 31000-32000 limits the scan to that range, so it doesn’t check all 65,535 ports.
+localhost is this machine, so it scans the Bandit server.
+
+This returns five open ports: 31046, 31518, 31691, 31790 and 31960.
+
+Step 3: Test each open port
+
+Send the bandit16 password to each port over an encrypted connection:
+
+echo kS0Hf0u5HiXFwKMKFqXvPdOTNGGa0X8V | openssl s_client -connect localhost:<port> -quiet
+
+Results:
+
+31046, 31691: fail with an SSL error, so they aren’t speaking the encrypted protocol this level needs.
+31518: completes the handshake but just echoes your password back, with no key.
+31790: replies Correct! followed by the private key for bandit17. This is the one.
+31960: the command has to be correct to run. A typo in openssl (s_cient) stopped it from running at all.
+Step 4: Save the key on your own machine
+
+Run this on your Kali machine, not the server. Copy the whole block from -----BEGIN OPENSSH PRIVATE KEY----- to -----END OPENSSH PRIVATE KEY----- into a file:
+
+nano ~/Desktop/bandit17.key
+chmod 400 ~/Desktop/bandit17.key
+
+SSH refuses to use a key that others can read, so chmod 400 is required before the next step.
+
+Step 5: Confirm the login works
+ssh -i ~/Desktop/bandit17.key -p 2220 bandit17@bandit.labs.overthewire.org
+Lessons learnt
+Read the level goal and work out what each port should do. Only one of the open ports gave the key, so you test each one rather than assuming.
+-sV made the scan very slow. A plain port scan finishes almost instantly. Add -sV only when you need service versions.
+Check your prompt before running commands. The kali@kali prompt means your own machine. bandit16@bandit means the server. Files saved on the wrong one end up in the wrong place.
+Watch for typos in commands. s_cient failed silently with a confusing error, so read the output before moving on.
+Permissions matter for SSH keys. chmod 400 is needed before SSH will accept a private key.
+
+Password (bandit17): Not yet retrieved. Run the login above, then cat /etc/bandit_pass/bandit17 once you’re in.
