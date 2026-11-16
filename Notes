@@ -480,3 +480,50 @@ Use whoami to check who a command runs as. Here it confirmed the setuid program 
 Don’t confuse the passwords. Each level has its own password. The one from the previous level (bandit19) is what got you into this level. The new one (bandit20) is what you need to go on.
 
 Password (bandit20): 4pIjcunZ0fK2vmp3IwfG8Vf7VhxD6pOA
+
+Level 20 → 21
+
+Goal: suconnect is a setuid program in the bandit20 home directory. It connects to a port you give it on localhost and sends the current password (bandit20’s) to the other side. If the password matches, it sends back the password for bandit21.
+
+Step 1: Log in as bandit20
+ssh -p 2220 bandit20@bandit.labs.overthewire.org
+Step 2: Check the program’s usage
+ls
+./suconnect
+
+The usage message says it takes one argument, a port number, and explains that it expects the correct password from the other side of the connection.
+
+Step 3: Start a listener
+
+The program connects out to a port, so something has to be listening there first. You used a listener on a high port that nothing else was using, and it sent the bandit20 password as soon as a connection came in:
+
+echo 4pIjcunZ0fK2vmp3IwfG8Vf7VhxD6pOA | nc -l -v 32222
+nc -l listens for a connection on the port.
+-v shows more output, including when a connection arrives.
+echo ... | sends the password through the listener once the connection is made.
+Step 4: Connect with suconnect
+
+In a second terminal, logged in as bandit20:
+
+./suconnect 32222
+
+The first terminal shows the connection received. Your suconnect output showed:
+
+Read: 4pIjcunZ0fK2vmp3IwfG8Vf7VhxD6pOA
+Password matches, sending next password
+
+The bandit21 password was then sent back and appeared in the listener’s terminal.
+
+What didn’t work, and why
+Port 2220 is the SSH server, so it never sends the password.
+Passing the password as an argument (./suconnect 33333 4pIj...) doesn’t work, because the program only accepts a port number.
+Using -p with suconnect caused a getaddrinfo error. The program doesn’t use that flag.
+Connecting before the listener was running gave “Could not connect”, because nothing was listening yet.
+Using a port that was already in use gave “Address already in use”.
+Lessons learnt
+Read the usage message. It tells you exactly what arguments the program accepts.
+Start the listener first. Something has to be waiting for suconnect to connect.
+Pick a port you control. Port 2220 is taken by SSH, and other ports can be in use.
+Read the error messages. “Could not connect” and “Address already in use” point to different problems.
+
+Password (bandit21): bW9kBv5WC3P4yoDyf12LSdGuNz5ka6hY
