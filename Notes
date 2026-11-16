@@ -424,3 +424,59 @@ Read the > and < markers. > is the second file, which is where the new password 
 Check your flags. Several of my earlier attempts used -breif, which is a typo for -brief and isn’t a valid option. The -q flag only reports whether files differ, not how, so it wouldn’t have shown the password.
 S
 Password (bandit18): OQxXZjELndr90zuhOTDYBEomI0SZITXI
+
+Level 18 → 19
+
+Goal: The .bashrc file on the server has been changed so that logging in as bandit18 ends your session straight away. You can’t get a usable shell, but you can still run a single command over SSH. The password for bandit19 is in a file called readme in the home directory.
+
+Step 1: Check what’s in the home directory
+ssh -p 2220 bandit18@bandit.labs.overthewire.org 'ls'
+
+This runs ls on the server and prints the filenames, which is how you find readme. It’s a useful way to explore a level without an interactive session.
+
+Step 2: Read the file
+ssh -p 2220 bandit18@bandit.labs.overthewire.org 'cat readme'
+ssh ... 'command' logs in, runs the command on the server, prints its output, and disconnects. This skips the interactive shell, so the .bashrc logout never gets the chance to end your session.
+'cat readme' is in single quotes so that the whole thing is sent as one command. Without the quotes, your local shell would split it up.
+-p 2220 sets the port, as in every level so far.
+
+The output shows the bandit19 password just above the prompt.
+
+Lessons learnt
+Remote commands work even when the login shell is blocked. Putting the command after the hostname runs it directly on the server.
+Use single quotes around the remote command. This keeps the whole command together, so your local shell doesn’t interpret it.
+Check the directory before you read a file. Running ls first shows what’s there, so you know the filename before you use cat.
+
+Password (bandit19): KpsOfPkcP7i1FlIExk2QEjyt6dw8dxZI
+
+Level 19 → 20
+
+Goal: In the home directory of bandit19 there’s a setuid program, bandit20-do, which runs commands as the bandit20 user. Use it to read the bandit20 password from /etc/bandit_pass/bandit20.
+
+Step 1: Find the program
+ls -l
+
+The output shows -rwsr-x--- for bandit20-do, owned by bandit20. The s in the owner’s permissions is the setuid bit, which means the program runs with the permissions of its owner (bandit20), not the person running it (bandit19).
+
+Step 2: Check how the program works
+./bandit20-do
+
+It prints a usage message: Run a command as another user. Example: ./bandit20-do whoami.
+
+./ runs a program in the current folder. Without it, the shell looks for the program in the system’s standard locations and can’t find it.
+whoami confirms the user the command runs as. The output was bandit20, which proves the program runs commands as bandit20.
+Step 3: Read the password as bandit20
+./bandit20-do cat /etc/bandit_pass/bandit20
+
+Because cat runs through bandit20-do, it runs as bandit20 and can read the password file, which bandit19 can’t open directly.
+
+The output is the bandit20 password.
+
+Lessons learnt
+Look for setuid files. An s where the owner’s x would normally be means the file runs with its owner’s permissions. Use ls -l to check.
+Test a program’s usage before guessing. Running it with no arguments, or with --help where supported, tells you the expected format.
+./ matters for local programs. Without it, the shell looks in system directories and reports “No such file or directory”.
+Use whoami to check who a command runs as. Here it confirmed the setuid program was acting as bandit20.
+Don’t confuse the passwords. Each level has its own password. The one from the previous level (bandit19) is what got you into this level. The new one (bandit20) is what you need to go on.
+
+Password (bandit20): 4pIjcunZ0fK2vmp3IwfG8Vf7VhxD6pOA
