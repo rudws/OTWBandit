@@ -406,3 +406,21 @@ Watch for typos in commands. s_cient failed silently with a confusing error, so 
 Permissions matter for SSH keys. chmod 400 is needed before SSH will accept a private key.
 
 Password (bandit17): Not yet retrieved. Run the login above, then cat /etc/bandit_pass/bandit17 once you’re in.
+
+Level 17 → 18
+
+Goal: passwords.old and passwords.new sit in the home directory. Exactly one line differs between them, and the password for bandit18 is on that line.
+
+Step 1: Compare the files
+diff passwords.old passwords.new
+diff compares two files line by line and shows what’s different.
+The output 42c42 means line 42 differs. The < line is from the first file (passwords.old), and the > line is from the second (passwords.new).
+
+The line marked > in passwords.new is the new password.
+
+Lessons learnt
+Don’t overthink it. diff is the right tool for “what changed between these two files”, and the output tells you the answer directly.
+Read the > and < markers. > is the second file, which is where the new password lives.
+Check your flags. Several of my earlier attempts used -breif, which is a typo for -brief and isn’t a valid option. The -q flag only reports whether files differ, not how, so it wouldn’t have shown the password.
+S
+Password (bandit18): OQxXZjELndr90zuhOTDYBEomI0SZITXI
